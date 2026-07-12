@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:;" />
+    <title>The Last Hour</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="starfield" aria-hidden="true"></div>
+    <div class="app-frame">
+      <aside class="sidebar">
+        <div class="drag-strip" aria-hidden="true"></div>
+        <button class="brand" id="brandButton" aria-label="Open focused feed">
+          <span class="brand-mark"><i></i></span>
+          <span><strong>THE LAST HOUR</strong><small>LOCAL NEWS OBSERVATORY</small></span>
+        </button>
+
+        <nav class="mode-nav" aria-label="Feed modes">
+          <button class="mode-button active" data-mode="topic"><span>01</span><strong>Focused Feed</strong><small>One topic at a time</small></button>
+          <button class="mode-button" data-mode="ultra"><span>02</span><strong>Ultra Feed</strong><small>Every selected topic</small></button>
+          <button class="mode-button" data-mode="super"><span>03</span><strong>Super Feed</strong><small>Infinite 24-hour stream</small></button>
+        </nav>
+
+        <div class="sidebar-label">SUBJECT CHANNELS</div>
+        <nav class="subject-nav" id="subjectNav" aria-label="Subject channels"></nav>
+
+        <div class="sidebar-status">
+          <div><span class="status-dot" id="statusDot"></span><strong id="localStatus">LOCAL CACHE READY</strong></div>
+          <small id="cacheSummary">Loading saved signals…</small>
+          <div class="progress-track"><i id="progressBar"></i></div>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="toolbar">
+          <div class="toolbar-copy">
+            <span id="modeKicker">F01 · FOCUSED SIGNAL</span>
+            <h1 id="viewTitle">Grok AI</h1>
+          </div>
+          <div class="toolbar-actions">
+            <div class="window-toggle" id="windowToggle" aria-label="News time window">
+              <button data-hours="1">1 HOUR</button>
+              <button class="active" data-hours="24">24 HOURS</button>
+            </div>
+            <button class="utility-button" id="filterButton">FILTERS <b id="filterCount">29</b></button>
+            <button class="utility-button" id="exportButton">EXPORT</button>
+            <button class="refresh-button" id="refreshButton"><span>↻</span> REFRESH</button>
+            <button class="icon-button" id="aboutButton" aria-label="About The Last Hour">?</button>
+          </div>
+        </header>
+
+        <section class="topic-rail" id="topicRail" aria-label="Topics"></section>
+
+        <section class="filter-drawer" id="filterDrawer" hidden>
+          <div class="filter-header">
+            <div><span>TOPIC FILTER</span><strong>Choose signals for Ultra and Super Feed</strong></div>
+            <div><button id="selectAll">SELECT ALL</button><button id="clearAll">CLEAR</button></div>
+          </div>
+          <div class="filter-groups" id="filterGroups"></div>
+        </section>
+
+        <section class="signal-header">
+          <div>
+            <p class="eyebrow"><span class="status-dot"></span><span id="signalLabel">LATEST 24-HOUR SIGNALS</span></p>
+            <p id="signalDescription">Direct from Google News, fetched and stored on this Mac.</p>
+          </div>
+          <div class="readouts">
+            <div><span>STORIES</span><strong id="storyCount">0</strong></div>
+            <div><span>TOPICS</span><strong id="topicCount">0</strong></div>
+            <div><span>LAST SYNC</span><strong id="lastSync">—</strong><em id="dataMode">SAVED COPY</em></div>
+          </div>
+        </section>
+
+        <section class="story-surface" id="storySurface" aria-live="polite"></section>
+        <div class="stream-sentinel" id="streamSentinel" hidden>SCROLL FOR MORE SIGNALS</div>
+      </main>
+    </div>
+
+    <dialog class="about-dialog" id="aboutDialog">
+      <button class="dialog-close" id="aboutClose" aria-label="Close about dialog">×</button>
+      <span class="dialog-kicker">MISSION FILE · LOCAL EDITION</span>
+      <h2>Your news universe,<br />running on your Mac.</h2>
+      <p>The Last Hour downloads Google News RSS directly from this computer, keeps a seven-day local safety cache, and displays the newest one-hour or 24-hour stories across 29 favorite topics.</p>
+      <dl>
+        <div><dt>NETWORK</dt><dd>Direct Google News RSS</dd></div>
+        <div><dt>STORAGE</dt><dd>Private local cache</dd></div>
+        <div><dt>CLOUD COST</dt><dd>None</dd></div>
+      </dl>
+    </dialog>
+
+    <dialog class="export-dialog" id="exportDialog">
+      <button class="dialog-close" id="exportClose" aria-label="Close export dialog">×</button>
+      <span class="dialog-kicker">LOCAL FEED EXPORT</span>
+      <h2>Take the current signal with you.</h2>
+      <p>Export the stories currently selected in this app. These are local snapshots rather than public polling endpoints.</p>
+      <div class="export-actions"><button data-export="json">EXPORT JSON</button><button data-export="rss">EXPORT RSS/XML</button></div>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>

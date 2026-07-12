@@ -1,0 +1,49 @@
+{
+  "queryOverrides": {
+    "Open AI": "OpenAI",
+    "Notebook LM": "NotebookLM",
+    "Public Domain Superhero": "\"public domain\" superhero",
+    "Open Source Superheroes": "\"open source\" superheroes",
+    "Marvel Multiverse RPG": "\"Marvel Multiverse RPG\"",
+    "Solo Journaling RPG": "\"solo journaling RPG\"",
+    "Masters Of The Universe": "\"Masters of the Universe\"",
+    "Marvel Action Figures": "Marvel action figures",
+    "DC Comics Action Figures": "DC Comics action figures",
+    "Dragon Ball Action Figures": "\"Dragon Ball\" action figures",
+    "Dragon Ball Videogames": "\"Dragon Ball\" videogames",
+    "Institute of Noetic Sciences": "\"Institute of Noetic Sciences\"",
+    "WOW Superheroes Women Wrestling": "\"WOW Superheroes\" women wrestling"
+  },
+  "subjectGroups": [
+    {
+      "name": "AI & Agents",
+      "code": "A01",
+      "topics": ["Grok AI", "Open AI", "ChatGPT", "Anthropic Claude", "Google Gemini", "Notebook LM", "Microsoft Copilot", "Perplexity AI", "Ollama", "AI Wearables"]
+    },
+    {
+      "name": "Comics & Heroes",
+      "code": "C02",
+      "topics": ["AI Comics", "Public Domain Superhero", "Open Source Superheroes", "Marvel Comics", "DC Comics"]
+    },
+    {
+      "name": "Games & RPGs",
+      "code": "G03",
+      "topics": ["Marvel Snap", "Marvel Multiverse RPG", "Fortnite", "Solo Journaling RPG", "Dragon Ball Videogames"]
+    },
+    {
+      "name": "Figures & Collecting",
+      "code": "F04",
+      "topics": ["Masters Of The Universe", "Marvel Action Figures", "DC Comics Action Figures", "Dragon Ball Action Figures"]
+    },
+    {
+      "name": "Future & Mind",
+      "code": "T05",
+      "topics": ["Transhumanism", "Institute of Noetic Sciences", "Consumer Robotics"]
+    },
+    {
+      "name": "Culture & Unknown",
+      "code": "U06",
+      "topics": ["WOW Superheroes Women Wrestling", "UFO Files"]
+    }
+  ]
+}

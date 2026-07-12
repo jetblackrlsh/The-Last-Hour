@@ -1,0 +1,13 @@
+{
+  "appId": "com.jetblackrlsh.thelasthour",
+  "appName": "The Last Hour",
+  "webDir": "mobile/dist",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

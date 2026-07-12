@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#05040b" />
+    <title>The Last Hour</title>
+    <script type="module" src="/src/main.js"></script>
+  </head>
+  <body>
+    <div class="stars" aria-hidden="true"></div>
+    <div class="app-shell">
+      <header class="topbar">
+        <button class="brand" id="brandButton" aria-label="Focused Feed">
+          <span class="brand-mark"><i></i></span>
+          <span><strong>THE LAST HOUR</strong><small>POCKET OBSERVATORY</small></span>
+        </button>
+        <div class="top-actions">
+          <button class="status-button" id="statusButton"><span class="live-dot"></span><b id="statusText">LOCAL</b></button>
+          <button class="icon-button" id="aboutButton" aria-label="About">?</button>
+        </div>
+      </header>
+
+      <nav class="mode-nav" aria-label="Feed modes">
+        <button class="active" data-mode="topic"><span>01</span>FOCUSED</button>
+        <button data-mode="ultra"><span>02</span>ULTRA</button>
+        <button data-mode="super"><span>03</span>SUPER</button>
+      </nav>
+
+      <nav class="subject-rail" id="subjectRail" aria-label="Subject channels"></nav>
+      <nav class="topic-rail" id="topicRail" aria-label="Topics"></nav>
+
+      <section class="command-bar">
+        <div><span id="modeKicker">F01 · FOCUSED SIGNAL</span><h1 id="viewTitle">GROK AI</h1></div>
+        <div class="command-actions">
+          <div class="window-toggle" id="windowToggle"><button data-hours="1">1H</button><button class="active" data-hours="24">24H</button></div>
+          <button class="filter-button" id="filterButton">FILTER <b id="filterCount">29</b></button>
+          <button class="refresh-button" id="refreshButton" aria-label="Refresh current feed">↻</button>
+        </div>
+      </section>
+
+      <section class="sync-panel">
+        <div class="sync-heading"><span id="signalLabel">LATEST 24-HOUR SIGNALS</span><strong id="dataMode">SAVED COPY</strong></div>
+        <div class="progress-track"><i id="progressBar"></i></div>
+        <p id="syncDescription">Loading saved signals from this phone.</p>
+      </section>
+
+      <main class="story-stream" id="storyStream" aria-live="polite"></main>
+      <div class="stream-sentinel" id="streamSentinel" hidden>SCROLL FOR MORE SIGNALS</div>
+
+      <div class="pull-indicator" id="pullIndicator">PULL DOWN TO REFRESH</div>
+    </div>
+
+    <dialog class="sheet" id="filterSheet">
+      <div class="sheet-handle"></div>
+      <header><div><span>TOPIC FILTER</span><h2>Choose your signals</h2></div><button id="filterClose" aria-label="Close">×</button></header>
+      <div class="sheet-actions"><button id="selectAll">SELECT ALL</button><button id="clearAll">CLEAR</button></div>
+      <div class="filter-groups" id="filterGroups"></div>
+    </dialog>
+
+    <dialog class="sheet about-sheet" id="aboutSheet">
+      <div class="sheet-handle"></div>
+      <header><div><span>MISSION FILE · ANDROID</span><h2>Your news universe, on this phone.</h2></div><button id="aboutClose" aria-label="Close">×</button></header>
+      <p>The Last Hour downloads Google News RSS directly through Android, stores successful results privately on your Pixel, and keeps Focused, Ultra and Super feeds available without a cloud server.</p>
+      <dl><div><dt>NETWORK</dt><dd>Direct Google News RSS</dd></div><div><dt>STORAGE</dt><dd>Private device cache</dd></div><div><dt>CLOUD COST</dt><dd>None</dd></div></dl>
+    </dialog>
+  </body>
+</html>

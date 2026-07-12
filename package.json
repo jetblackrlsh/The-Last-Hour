@@ -1,0 +1,64 @@
+{
+  "name": "the-last-hour",
+  "version": "1.0.0",
+  "description": "A local-first cosmic Google News observatory.",
+  "author": "Nicholas Benson",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jetblackrlsh/The-Last-Hour.git"
+  },
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "pack": "electron-builder --dir --mac arm64",
+    "dist": "electron-builder --mac dmg zip --arm64",
+    "mobile:dev": "vite --config mobile/vite.config.js",
+    "mobile:build": "vite build --config mobile/vite.config.js",
+    "android:sync": "npm run mobile:build && cap sync android",
+    "android:apk": "npm run android:sync && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/browser": "^8.0.0",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/preferences": "^8.0.0",
+    "fast-xml-parser": "^5.2.5"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
+    "electron": "^43.1.0",
+    "electron-builder": "^26.15.3",
+    "vite": "^8.1.4"
+  },
+  "build": {
+    "appId": "com.jetblackrlsh.thelasthour",
+    "productName": "The Last Hour",
+    "asar": true,
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "category": "public.app-category.news",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "identity": null,
+      "hardenedRuntime": false
+    },
+    "dmg": {
+      "title": "The Last Hour",
+      "backgroundColor": "#080611"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+node_modules/
+release/
+mobile/dist/
+android/.gradle/
+android/local.properties
+android/app/build/
+.signing/
+.DS_Store
+*.log
