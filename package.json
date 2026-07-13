@@ -45,6 +45,7 @@
       "main.js",
       "preload.js",
       "src/**/*",
+      "shared/**/*",
       "renderer/**/*",
       "package.json"
     ],
