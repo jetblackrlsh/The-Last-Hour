@@ -1,12 +1,13 @@
 # The Last Hour
 
-A local-first, cosmic Google News observatory for macOS and Android. The app collects the newest one-hour and 24-hour stories across 29 hand-picked topics without a hosted backend, paid API, feed converter, analytics service, or cloud database.
+A local-first, cosmic Google News observatory for Windows, macOS, and Android. The app collects the newest one-hour and 24-hour stories across 29 hand-picked topics without a hosted backend, paid API, feed converter, analytics service, or cloud database.
 
 ## Download
 
 Installers are available from the [latest GitHub release](https://github.com/jetblackrlsh/The-Last-Hour/releases/latest):
 
 - **macOS (Apple Silicon):** download the `.dmg`, open it, and drag **The Last Hour** into Applications.
+- **Windows (64-bit):** download the Windows Setup `.exe` and run it. Windows SmartScreen may ask you to confirm because the installer is unsigned.
 - **Android:** download the signed `.apk` on the phone and open it. Android may ask you to allow installs from the browser or Files app used to open it.
 
 The macOS build is intentionally unsigned to avoid Apple Developer fees. If Gatekeeper warns on first launch, Control-click the app and choose **Open**.
@@ -22,7 +23,7 @@ The macOS build is intentionally unsigned to avoid Apple Developer fees. If Gate
 - Two-request refresh queue with retry and timeout controls
 - Automatic 15-minute refresh while the app is running
 - Seven-day private local safety cache
-- Local JSON and RSS/XML snapshot exports on macOS
+- Local JSON and RSS/XML snapshot exports on desktop
 
 ## Why it is local-first
 
@@ -50,11 +51,19 @@ npm test
 npm start
 ```
 
-Build the Apple Silicon installer:
+Build the Apple Silicon installer on macOS:
 
 ```bash
 npm run dist
 ```
+
+Build the 64-bit installer and portable ZIP on Windows:
+
+```powershell
+npm run dist:win
+```
+
+The Windows files are written to `release/`. The repository's **Build Windows installer** workflow also creates a downloadable Windows artifact and can attach the files to an existing GitHub release when run manually with a release tag.
 
 ## Android development
 

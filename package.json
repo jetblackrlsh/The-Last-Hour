@@ -13,8 +13,12 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test",
-    "pack": "electron-builder --dir --mac arm64",
-    "dist": "electron-builder --mac dmg zip --arm64",
+    "pack": "npm run pack:mac",
+    "pack:mac": "electron-builder --dir --mac --arm64",
+    "pack:win": "electron-builder --dir --win --x64",
+    "dist": "npm run dist:mac",
+    "dist:mac": "electron-builder --mac dmg zip --arm64",
+    "dist:win": "electron-builder --win nsis zip --x64",
     "mobile:dev": "vite --config mobile/vite.config.js",
     "mobile:build": "vite build --config mobile/vite.config.js",
     "android:sync": "npm run mobile:build && cap sync android",
@@ -55,6 +59,20 @@
       ],
       "identity": null,
       "hardenedRuntime": false
+    },
+    "win": {
+      "icon": "assets/icon-only.png",
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "The Last Hour"
     },
     "dmg": {
       "title": "The Last Hour",
