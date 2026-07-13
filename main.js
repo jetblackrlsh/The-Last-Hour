@@ -34,13 +34,19 @@ function feedAsRss(feed) {
 }
 
 function createWindow() {
+  const macWindowOptions = process.platform === "darwin"
+    ? {
+        titleBarStyle: "hiddenInset",
+        trafficLightPosition: { x: 20, y: 18 }
+      }
+    : {};
+
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 920,
     minWidth: 980,
     minHeight: 680,
-    titleBarStyle: "hiddenInset",
-    trafficLightPosition: { x: 20, y: 18 },
+    ...macWindowOptions,
     backgroundColor: "#05040b",
     show: false,
     webPreferences: {
