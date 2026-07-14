@@ -22,7 +22,7 @@
     "mobile:dev": "vite --config mobile/vite.config.js",
     "mobile:build": "vite build --config mobile/vite.config.js",
     "android:sync": "npm run mobile:build && cap sync android",
-    "android:apk": "npm run android:sync && cd android && ./gradlew assembleDebug"
+    "android:apk": "npm run android:sync && node scripts/build-android.cjs"
   },
   "dependencies": {
     "@capacitor/browser": "^8.0.0",

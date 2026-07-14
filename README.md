@@ -77,12 +77,14 @@ Requires JDK 21, Android SDK Platform 36, Android Build Tools 35, and the Androi
 
 ```bash
 npm install
-npm run android:sync
-cd android
-./gradlew assembleDebug
+npm run android:apk
 ```
 
 The debug APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`.
+
+Android summaries use Google's hosted `gemma-4-31b-it` model. Open **AI summary settings** in the app and enter a Google AI Studio API key; the app verifies the key before encrypting it with an Android Keystore key. No API key is included in the source tree or APK, and each installation uses only the key entered on that device. The app spaces generation requests to respect the model's 15-request-per-minute peak limit and reports Google's quota errors, including the 1,500-request daily limit.
+
+Before asking Gemma for a summary, the app resolves the Google News link, downloads the publisher page, and extracts readable article text. The article text is sent to Google over HTTPS. Publisher pages that are blocked, paywalled, or do not expose enough readable text are not summarized. **Read Aloud** uses Android's local text-to-speech service and does not make another AI request.
 
 Release signing credentials are deliberately excluded from the repository. To create a signed release build, set these variables before running `./gradlew assembleRelease`:
 
@@ -95,7 +97,7 @@ The keystore must contain an alias named `the-last-hour`.
 
 ## Privacy
 
-The Last Hour has no account system, tracking, advertising, telemetry, or application server. Feed requests go to Google News, and opening a story sends the user to the linked publisher. Cached feed data stays in the application’s private storage on the device.
+The Last Hour has no account system, tracking, advertising, telemetry, or application server. Feed requests go to Google News, and opening a story sends the user to the linked publisher. Cached feed data stays in the application's private storage on the device. Android AI summaries are optional; when enabled, the selected article text and summary prompt are sent directly to Google's Gemini API using the API key supplied by that device's user. The encrypted API key is stored in private app storage with backup disabled.
 
 ## License
 

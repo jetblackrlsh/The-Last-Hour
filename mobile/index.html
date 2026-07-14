@@ -17,6 +17,7 @@
         </button>
         <div class="top-actions">
           <button class="status-button" id="statusButton"><span class="live-dot"></span><b id="statusText">LOCAL</b></button>
+          <button class="icon-button ai-button" id="aiButton" aria-label="AI summary settings">&#10022;</button>
           <button class="icon-button" id="aboutButton" aria-label="About">?</button>
         </div>
       </header>
@@ -62,7 +63,22 @@
       <div class="sheet-handle"></div>
       <header><div><span>MISSION FILE · ANDROID</span><h2>Your news universe, on this phone.</h2></div><button id="aboutClose" aria-label="Close">×</button></header>
       <p>The Last Hour downloads Google News RSS directly through Android, stores successful results privately on your Pixel, and keeps Focused, Ultra and Super feeds available without a cloud server.</p>
-      <dl><div><dt>NETWORK</dt><dd>Direct Google News RSS</dd></div><div><dt>STORAGE</dt><dd>Private device cache</dd></div><div><dt>CLOUD COST</dt><dd>None</dd></div></dl>
+      <dl><div><dt>NETWORK</dt><dd>Direct Google News RSS</dd></div><div><dt>STORAGE</dt><dd>Private device cache</dd></div><div><dt>AI</dt><dd>Your optional Google API key</dd></div></dl>
+    </dialog>
+
+    <dialog class="sheet ai-sheet" id="aiSheet">
+      <div class="sheet-handle"></div>
+      <header><div><span>AI SUMMARIES &middot; GEMMA 4</span><h2>Connect your own key.</h2></div><button id="aiClose" aria-label="Close">&times;</button></header>
+      <p class="ai-intro">Article text is sent over HTTPS to Google&rsquo;s hosted Gemma 4 31B model. Your API key is encrypted for this device and is never included in the app or repository.</p>
+      <div class="ai-model-line"><span>MODEL</span><strong>GEMMA 4 31B</strong><small>15 requests/min &middot; 1,500/day</small></div>
+      <form id="aiKeyForm" class="ai-key-form">
+        <label for="aiKeyInput">GOOGLE AI STUDIO API KEY</label>
+        <div class="ai-key-field"><input id="aiKeyInput" type="password" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Paste your key on this device" /><button type="button" id="aiKeyReveal" aria-label="Show API key">SHOW</button></div>
+        <button class="ai-save-button" id="aiSaveButton" type="submit">VERIFY &amp; SAVE KEY</button>
+      </form>
+      <div class="ai-key-status" id="aiKeyStatus" role="status"></div>
+      <button class="ai-delete-button" id="aiDeleteButton" type="button" hidden>REMOVE KEY FROM THIS PHONE</button>
+      <p class="ai-privacy">Summaries require internet access and use the quota attached to your key. Read Aloud uses Android&rsquo;s system voice locally.</p>
     </dialog>
   </body>
 </html>
