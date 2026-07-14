@@ -1,10 +1,12 @@
 const path = require("node:path");
 const fs = require("node:fs/promises");
 const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
+const { CodexSummaryService, publicSummaryError } = require("./src/codex-summary-service");
 const { FeedService } = require("./src/feed-service");
 
 let mainWindow;
 let feedService;
+let summaryService;
 
 function escapeXml(value) {
   return String(value)
@@ -79,6 +81,14 @@ function registerIpc() {
     if (typeof url === "string" && url.startsWith("https://")) return shell.openExternal(url);
     return false;
   });
+  ipcMain.handle("story:summarize", async (_event, story) => {
+    try {
+      return { ok: true, summary: await summaryService.summarize(story) };
+    } catch (error) {
+      console.error("Codex summary failed:", error);
+      return { ok: false, error: publicSummaryError(error) };
+    }
+  });
   ipcMain.handle("feed:export", async (_event, format, feed) => {
     const extension = format === "rss" ? "xml" : "json";
     const result = await dialog.showSaveDialog(mainWindow, {
@@ -100,6 +110,7 @@ function registerIpc() {
 
 app.whenReady().then(async () => {
   feedService = new FeedService(app.getPath("userData"));
+  summaryService = new CodexSummaryService({ cwd: app.getPath("temp") });
   await feedService.init();
   registerIpc();
   createWindow();
