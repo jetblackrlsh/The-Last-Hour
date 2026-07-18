@@ -13,14 +13,16 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test",
-    "pack": "electron-builder --dir --mac arm64",
+    "pack": "npm run pack:mac",
+    "pack:mac": "electron-builder --dir --mac --arm64",
+    "pack:win": "electron-builder --dir --win --x64",
     "dist": "npm run dist:mac",
     "dist:mac": "electron-builder --mac dmg zip --arm64",
-    "dist:win": "electron-builder --win nsis --x64 && electron-builder --win zip --x64",
+    "dist:win": "electron-builder --win nsis --x64 --publish never && electron-builder --win zip --x64 --publish never",
     "mobile:dev": "vite --config mobile/vite.config.js",
     "mobile:build": "vite build --config mobile/vite.config.js",
     "android:sync": "npm run mobile:build && cap sync android",
-    "android:apk": "npm run android:sync && cd android && ./gradlew assembleDebug"
+    "android:apk": "npm run android:sync && node scripts/build-android.cjs"
   },
   "dependencies": {
     "@capacitor/browser": "^8.0.0",
@@ -74,11 +76,13 @@
       ]
     },
     "nsis": {
-      "oneClick": true,
+      "oneClick": false,
       "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
       "runAfterFinish": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "shortcutName": "The Last Hour"
     }
   }
 }

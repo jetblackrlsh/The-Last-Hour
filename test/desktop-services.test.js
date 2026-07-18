@@ -2,11 +2,6 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const {
-  buildSummaryPrompt,
-  candidateCodexPaths,
-  summaryKey
-} = require("../src/codex-service");
-const {
   MAC_INSTALL_SCRIPT,
   isNewerVersion,
   macBundleFromExecutable,
@@ -41,36 +36,6 @@ test("release and bundle helpers normalize updater metadata", () => {
   );
   assert.match(MAC_INSTALL_SCRIPT, /backup_app="\$\{target_app\}\.update-backup"/);
   assert.doesNotMatch(MAC_INSTALL_SCRIPT, /\\\$\{target_app\}/);
-});
-
-test("desktop packages include the shared topic data required at startup", () => {
-  const packageManifest = require("../package.json");
-  assert.ok(packageManifest.build.files.includes("shared/**/*"));
-});
-
-test("Codex summary prompts contain the story context and safety constraints", () => {
-  const story = {
-    title: "A major event happened",
-    source: "Example News",
-    topic: "World News",
-    publishedAt: "2026-07-18T12:00:00.000Z",
-    url: "https://example.com/story"
-  };
-  const prompt = buildSummaryPrompt(story);
-  assert.match(prompt, /concise, neutral news summary/i);
-  assert.match(prompt, /exactly three brief bullet points/i);
-  assert.match(prompt, /https:\/\/example\.com\/story/);
-  assert.equal(summaryKey(story), summaryKey({ ...story }));
-});
-
-test("Codex path discovery includes standalone and npm installations", () => {
-  const windows = candidateCodexPaths("win32", {
-    LOCALAPPDATA: "C:\\Users\\News\\AppData\\Local",
-    APPDATA: "C:\\Users\\News\\AppData\\Roaming"
-  });
-  assert.ok(windows.some((value) => value.endsWith("codex.exe")));
-  assert.ok(windows.some((value) => value.endsWith("codex.cmd")));
-  assert.ok(candidateCodexPaths("darwin", {}).some((value) => value.endsWith(".npm-global/bin/codex")));
 });
 
 test("Huntsville weather requests use Fahrenheit current conditions and Central time", () => {

@@ -1,8 +1,7 @@
 const path = require("node:path");
 const fs = require("node:fs/promises");
-const { spawn } = require("node:child_process");
 const { app, BrowserWindow, dialog, ipcMain, net, shell } = require("electron");
-const { CodexSummaryService } = require("./src/codex-service");
+const { CodexSummaryService, publicSummaryError } = require("./src/codex-summary-service");
 const { FeedService } = require("./src/feed-service");
 const { DesktopUpdateService } = require("./src/update-service");
 const { WeatherService } = require("./src/weather-service");
@@ -12,7 +11,6 @@ let feedService;
 let summaryService;
 let updateService;
 let weatherService;
-let speechProcess;
 
 function escapeXml(value) {
   return String(value)
@@ -83,62 +81,13 @@ function sendToRenderer(channel, value) {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, value);
 }
 
-function stopSpeech() {
-  if (!speechProcess) return false;
-  speechProcess.kill();
-  speechProcess = undefined;
-  sendToRenderer("speech:state", { speaking: false });
-  return true;
-}
-
-function speakText(text) {
-  stopSpeech();
-  const safeText = String(text || "").trim().slice(0, 24_000);
-  if (!safeText) throw new Error("There is no summary to read aloud.");
-
-  if (process.platform === "darwin") {
-    speechProcess = spawn("/usr/bin/say", ["-f", "-"], { stdio: ["pipe", "ignore", "ignore"] });
-  } else if (process.platform === "win32") {
-    const script = [
-      "$text = [Console]::In.ReadToEnd()",
-      "Add-Type -AssemblyName System.Speech",
-      "$speaker = New-Object System.Speech.Synthesis.SpeechSynthesizer",
-      "$speaker.Speak($text)"
-    ].join("; ");
-    speechProcess = spawn("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script], {
-      stdio: ["pipe", "ignore", "ignore"],
-      windowsHide: true
-    });
-  } else {
-    throw new Error("Read aloud is currently supported on macOS and Windows.");
-  }
-
-  const activeProcess = speechProcess;
-  activeProcess.once("error", (error) => {
-    if (speechProcess === activeProcess) speechProcess = undefined;
-    sendToRenderer("speech:state", { speaking: false, error: error.message });
-  });
-  activeProcess.once("close", () => {
-    if (speechProcess === activeProcess) speechProcess = undefined;
-    sendToRenderer("speech:state", { speaking: false });
-  });
-  activeProcess.stdin.on("error", () => {});
-  activeProcess.stdin.end(safeText);
-  sendToRenderer("speech:state", { speaking: true });
-  return true;
-}
-
 function registerIpc() {
-  ipcMain.handle("app:info", async () => {
-    const codex = await summaryService.availability();
-    return {
-      version: app.getVersion(),
-      platform: process.platform,
-      arch: process.arch,
-      packaged: app.isPackaged,
-      codexAvailable: codex.available
-    };
-  });
+  ipcMain.handle("app:info", () => ({
+    version: app.getVersion(),
+    platform: process.platform,
+    arch: process.arch,
+    packaged: app.isPackaged
+  }));
   ipcMain.handle("feeds:snapshot", () => feedService.snapshot());
   ipcMain.handle("feeds:refresh-all", (_event, options) => feedService.refreshAll(options));
   ipcMain.handle("feeds:refresh-topic", (_event, topic, options) => feedService.refreshTopic(topic, options));
@@ -146,10 +95,14 @@ function registerIpc() {
     if (typeof url === "string" && url.startsWith("https://")) return shell.openExternal(url);
     return false;
   });
-  ipcMain.handle("story:summarize", (_event, story) => summaryService.summarize(story));
-  ipcMain.handle("speech:speak", (_event, text) => speakText(text));
-  ipcMain.handle("speech:stop", () => stopSpeech());
-  ipcMain.handle("update:check", () => updateService.latest());
+  ipcMain.handle("story:summarize", async (_event, story) => {
+    try {
+      return { ok: true, summary: await summaryService.summarize(story) };
+    } catch (error) {
+      console.error("Codex summary failed:", error);
+      return { ok: false, error: publicSummaryError(error) };
+    }
+  });
   ipcMain.handle("update:install", () => updateService.downloadAndInstall((progress) => {
     sendToRenderer("update:progress", progress);
   }));
@@ -173,10 +126,10 @@ function registerIpc() {
 
 app.whenReady().then(async () => {
   feedService = new FeedService(app.getPath("userData"));
-  summaryService = new CodexSummaryService(app.getPath("userData"));
+  summaryService = new CodexSummaryService({ cwd: app.getPath("temp") });
   updateService = new DesktopUpdateService(app, (...args) => net.fetch(...args));
   weatherService = new WeatherService((...args) => net.fetch(...args));
-  await Promise.all([feedService.init(), summaryService.init()]);
+  await feedService.init();
   registerIpc();
   createWindow();
   app.on("activate", () => {
@@ -185,6 +138,5 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
-  stopSpeech();
   if (process.platform !== "darwin") app.quit();
 });

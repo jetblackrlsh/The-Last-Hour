@@ -5,8 +5,8 @@ This release adds shared desktop intelligence, narration, and one-click updates.
 ## Included
 
 - On-demand Codex summaries on both macOS and Windows
-- Seven-day private summary caching to avoid repeat requests
-- Native macOS and Windows text-to-speech playback with stop/restart controls
+- In-memory summary caching to avoid repeat requests during a session
+- macOS and Windows system-voice playback with stop controls
 - A one-button updater in the About panel
 - Platform-aware download selection for Apple Silicon macOS ZIPs and Windows installers
 - SHA-256 verification before any downloaded update is installed
@@ -26,6 +26,7 @@ The first public local-first release of The Last Hour.
 ## Included
 
 - Apple Silicon macOS Electron application
+- 64-bit Windows Electron installer and portable ZIP
 - Signed Android APK for Android 7 and newer, including Pixel devices
 - Focused, Ultra, and infinite-scroll Super feeds
 - One-hour and 24-hour views across 29 favorite topics

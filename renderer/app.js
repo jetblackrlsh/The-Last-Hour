@@ -9,13 +9,14 @@ const state = {
   selectedTopics: new Set(),
   loadingTopics: new Set(),
   failedTopics: new Set(),
+  summaries: new Map(),
   visibleCount: 20,
   lastRenderFeed: null,
-  summaries: new Map(),
-  speakingStoryId: "",
   appInfo: null,
   updating: false
 };
+
+let activeSpeech = null;
 
 const elements = Object.fromEntries([
   "subjectNav", "topicRail", "filterDrawer", "filterGroups", "filterCount", "modeKicker",
@@ -23,7 +24,7 @@ const elements = Object.fromEntries([
   "lastSync", "dataMode", "storySurface", "streamSentinel", "refreshButton", "filterButton",
   "exportButton", "aboutButton", "aboutDialog", "aboutClose", "exportDialog", "exportClose",
   "selectAll", "clearAll", "statusDot", "localStatus", "cacheSummary", "progressBar", "brandButton",
-  "codexStatus", "appVersion", "updateStatus", "updateProgress", "updateButton",
+  "appVersion", "updateStatus", "updateProgress", "updateButton",
   "weatherWidget", "weatherRefresh", "huntsvilleClock", "weatherTemperature", "weatherCondition", "weatherFreshness"
 ].map((id) => [id, document.getElementById(id)]));
 
@@ -148,22 +149,6 @@ function googleNewsUrl() {
   return `https://news.google.com/search?${params.toString()}`;
 }
 
-function storyExtras(story) {
-  const item = state.summaries.get(story.id);
-  const loading = item?.status === "loading";
-  const speaking = state.speakingStoryId === story.id;
-  const summary = item?.summary;
-  const error = item?.error;
-  return `
-    <div class="story-tools">
-      <button data-summary-id="${escapeHtml(story.id)}" ${loading || summary ? "disabled" : ""}>${loading ? "CODEX IS SUMMARIZING…" : summary ? "SUMMARY READY" : "SUMMARIZE WITH CODEX"}</button>
-      ${summary ? `<button data-speak-id="${escapeHtml(story.id)}">${speaking ? "RESTART READ ALOUD" : "READ ALOUD"}</button>` : ""}
-      ${speaking ? `<button data-stop-speech>STOP</button>` : ""}
-    </div>
-    ${summary ? `<div class="story-summary"><span>CODEX BRIEF${item.cached ? " · SAVED" : ""}</span><p>${escapeHtml(summary)}</p></div>` : ""}
-    ${error ? `<div class="story-summary error"><span>CODEX UNAVAILABLE</span><p>${escapeHtml(error)}</p></div>` : ""}`;
-}
-
 function renderNavigation() {
   elements.subjectNav.innerHTML = state.subjectGroups.map((group, index) => `
     <button class="subject-button ${index === state.groupIndex ? "active" : ""}" data-group="${index}">
@@ -197,6 +182,50 @@ function renderStatus() {
   elements.cacheSummary.textContent = `${cachedCount} of ${state.topics.length} topics saved on this computer${state.failedTopics.size ? ` · ${state.failedTopics.size} refresh failures` : ""}`;
   elements.progressBar.style.width = `${Math.min(100, (completed / Math.max(1, state.topics.length)) * 100)}%`;
   elements.refreshButton.classList.toggle("loading", isLoading);
+}
+
+function summaryMarkup(story) {
+  const item = state.summaries.get(story.id);
+  const isExpanded = Boolean(item && item.expanded);
+  const isSpeaking = activeSpeech?.storyId === story.id;
+  const label = item?.status === "loading"
+    ? "SUMMARIZING…"
+    : item?.status === "ready"
+      ? isExpanded ? "HIDE SUMMARY" : "SHOW SUMMARY"
+      : item?.status === "error" ? "RETRY SUMMARY" : "SUMMARIZE";
+  const button = `<button class="summarize-button ${item?.status || ""}" data-summarize="${escapeHtml(story.id)}" aria-controls="summary-${escapeHtml(story.id)}" aria-expanded="${isExpanded}" ${item?.status === "loading" ? "disabled" : ""}><span>✦</span>${label}</button>`;
+
+  if (!item || !isExpanded) return { button, panel: "" };
+  const content = item.status === "loading"
+    ? `<div class="summary-loading"><i></i><span>Codex is reading and checking this signal…</span></div>`
+    : item.status === "error"
+      ? `<p class="summary-error">${escapeHtml(item.error)}</p>`
+      : `<div class="summary-content"><p>${escapeHtml(item.text)}</p><div class="summary-audio"><button class="read-aloud-button${isSpeaking ? " speaking" : ""}" data-read-aloud="${escapeHtml(story.id)}" aria-pressed="${isSpeaking}" ${"speechSynthesis" in window && "SpeechSynthesisUtterance" in window ? "" : "disabled"}><span>${isSpeaking ? "■" : "▶"}</span>${isSpeaking ? "STOP READING" : "READ ALOUD"}</button><small>USES YOUR SYSTEM VOICE</small></div></div>`;
+  return {
+    button,
+    panel: `<section class="story-summary ${item.status}" id="summary-${escapeHtml(story.id)}" aria-live="polite"><div class="summary-label"><span>CODEX BRIEF</span><small>AI-GENERATED · VERIFY IMPORTANT DETAILS</small></div>${content}</section>`
+  };
+}
+
+function storyEntry(story, index, isLead = false) {
+  const summary = summaryMarkup(story);
+  if (isLead) {
+    return `<div class="story-entry lead-entry">
+      <article class="lead-story" data-url="${escapeHtml(story.url)}">
+        <div class="story-meta"><span>${escapeHtml(story.topic)}</span><span>${escapeHtml(story.source)} · ${timeAgo(story.publishedAt)}</span></div>
+        <h2>${escapeHtml(story.title)}</h2>
+        <div class="story-actions">${summary.button}<button class="open-signal" data-open-url="${escapeHtml(story.url)}">OPEN SIGNAL ↗</button></div>
+      </article>${summary.panel}
+    </div>`;
+  }
+
+  return `<div class="story-entry row-entry">
+    <article class="story-row" data-url="${escapeHtml(story.url)}">
+      <span class="story-index">${String(index).padStart(3, "0")}</span>
+      <div class="story-copy"><div class="story-meta"><span>${escapeHtml(story.topic)}</span><span>${escapeHtml(story.source)} · ${timeAgo(story.publishedAt)}</span></div><h3>${escapeHtml(story.title)}</h3></div>
+      ${summary.button}<button class="story-arrow" data-open-url="${escapeHtml(story.url)}" aria-label="Open ${escapeHtml(story.title)}">↗</button>
+    </article>${summary.panel}
+  </div>`;
 }
 
 function renderStories() {
@@ -242,15 +271,8 @@ function renderStories() {
     const lead = visible[0];
     const rows = state.mode === "super" ? visible : visible.slice(1);
     elements.storySurface.innerHTML = `
-      ${state.mode === "super" ? "" : `<article class="lead-story" data-url="${escapeHtml(lead.url)}" tabindex="0" role="link">
-        <div class="story-meta"><span>${escapeHtml(lead.topic)}</span><span>${escapeHtml(lead.source)} · ${timeAgo(lead.publishedAt)}</span></div>
-        <h2>${escapeHtml(lead.title)}</h2>${storyExtras(lead)}<span class="open-signal">OPEN SIGNAL ↗</span>
-      </article>`}
-      <div class="story-list">${rows.map((story, index) => `<article class="story-row" data-url="${escapeHtml(story.url)}" tabindex="0" role="link">
-        <span class="story-index">${String(index + (state.mode === "super" ? 1 : 2)).padStart(3, "0")}</span>
-        <div class="story-copy"><div class="story-meta"><span>${escapeHtml(story.topic)}</span><span>${escapeHtml(story.source)} · ${timeAgo(story.publishedAt)}</span></div><h3>${escapeHtml(story.title)}</h3>${storyExtras(story)}</div>
-        <span class="story-arrow">↗</span>
-      </article>`).join("")}</div>`;
+      ${state.mode === "super" ? "" : storyEntry(lead, 1, true)}
+      <div class="story-list">${rows.map((story, index) => storyEntry(story, index + (state.mode === "super" ? 1 : 2))).join("")}</div>`;
     elements.streamSentinel.hidden = state.mode !== "super";
     elements.streamSentinel.textContent = state.visibleCount < stories.length ? "SCROLL FOR MORE SIGNALS" : "END OF CURRENT 24-HOUR WINDOW";
   }
@@ -265,38 +287,6 @@ function renderStories() {
     items: stories
   };
   renderStatus();
-}
-
-function storyById(id) {
-  return buildStories().find((story) => story.id === id);
-}
-
-async function summarizeStory(id) {
-  const story = storyById(id);
-  if (!story) return;
-  state.summaries.set(id, { status: "loading" });
-  renderStories();
-  try {
-    const result = await window.lastHour.summarize(story);
-    state.summaries.set(id, { status: "ready", summary: result.summary, cached: result.cached });
-  } catch (error) {
-    state.summaries.set(id, { status: "error", error: error.message || "Codex could not summarize this story." });
-  }
-  renderStories();
-}
-
-async function readStorySummary(id) {
-  const summary = state.summaries.get(id)?.summary;
-  if (!summary) return;
-  state.speakingStoryId = id;
-  renderStories();
-  try {
-    await window.lastHour.speak(summary);
-  } catch (error) {
-    state.speakingStoryId = "";
-    state.summaries.set(id, { ...state.summaries.get(id), error: error.message || "Read aloud could not start." });
-    renderStories();
-  }
 }
 
 async function updateToLatest() {
@@ -353,6 +343,7 @@ async function refreshCurrent(force = true) {
 }
 
 function setMode(mode) {
+  stopReading();
   state.mode = mode;
   state.hours = mode === "super" ? 24 : state.hours;
   state.visibleCount = 20;
@@ -360,16 +351,90 @@ function setMode(mode) {
   render();
 }
 
+function stopReading(storyId = null, rerender = true) {
+  if (!activeSpeech || (storyId && activeSpeech.storyId !== storyId)) return;
+  activeSpeech.utterance.onend = null;
+  activeSpeech.utterance.onerror = null;
+  window.speechSynthesis.cancel();
+  activeSpeech = null;
+  if (rerender) renderStories();
+}
+
+function readSummary(storyId) {
+  if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) return;
+  if (activeSpeech?.storyId === storyId) {
+    stopReading(storyId);
+    return;
+  }
+
+  const summary = state.summaries.get(storyId);
+  if (summary?.status !== "ready" || !summary.text) return;
+  stopReading(null, false);
+
+  const utterance = new SpeechSynthesisUtterance(summary.text);
+  utterance.lang = "en-US";
+  utterance.rate = 0.95;
+  utterance.pitch = 1;
+  const voices = window.speechSynthesis.getVoices();
+  utterance.voice = voices.find((voice) => voice.default && voice.lang?.toLowerCase().startsWith("en"))
+    || voices.find((voice) => voice.lang?.toLowerCase().startsWith("en-us"))
+    || voices.find((voice) => voice.lang?.toLowerCase().startsWith("en"))
+    || null;
+
+  const finish = () => {
+    if (activeSpeech?.utterance !== utterance) return;
+    activeSpeech = null;
+    renderStories();
+  };
+  utterance.onend = finish;
+  utterance.onerror = finish;
+  activeSpeech = { storyId, utterance };
+  window.speechSynthesis.speak(utterance);
+  renderStories();
+}
+
+async function summarizeStory(storyId) {
+  const existing = state.summaries.get(storyId);
+  if (existing?.status === "loading") return;
+  if (existing?.status === "ready") {
+    if (existing.expanded) stopReading(storyId, false);
+    existing.expanded = !existing.expanded;
+    renderStories();
+    return;
+  }
+
+  const story = buildStories().find((item) => item.id === storyId);
+  if (!story) return;
+  state.summaries.set(storyId, { status: "loading", expanded: true });
+  renderStories();
+  const result = await window.lastHour.summarizeStory(story);
+  state.summaries.set(storyId, result.ok
+    ? { status: "ready", expanded: true, text: result.summary }
+    : { status: "error", expanded: true, error: result.error || "Codex could not create a summary." });
+  renderStories();
+}
+
 document.addEventListener("click", (event) => {
-  const summaryButton = event.target.closest("[data-summary-id]");
-  if (summaryButton) return summarizeStory(summaryButton.dataset.summaryId);
-  const speakButton = event.target.closest("[data-speak-id]");
-  if (speakButton) return readStorySummary(speakButton.dataset.speakId);
-  if (event.target.closest("[data-stop-speech]")) return window.lastHour.stopSpeaking();
+  const readAloudButton = event.target.closest("[data-read-aloud]");
+  if (readAloudButton) {
+    event.stopPropagation();
+    return readSummary(readAloudButton.dataset.readAloud);
+  }
+  const summaryButton = event.target.closest("[data-summarize]");
+  if (summaryButton) {
+    event.stopPropagation();
+    return summarizeStory(summaryButton.dataset.summarize);
+  }
+  const openButton = event.target.closest("[data-open-url]");
+  if (openButton) {
+    event.stopPropagation();
+    return window.lastHour.openExternal(openButton.dataset.openUrl);
+  }
   const modeButton = event.target.closest("[data-mode]");
   if (modeButton) return setMode(modeButton.dataset.mode);
   const groupButton = event.target.closest("[data-group]");
   if (groupButton) {
+    stopReading();
     state.groupIndex = Number(groupButton.dataset.group);
     if (state.mode === "topic") {
       state.topic = state.subjectGroups[state.groupIndex].topics[0];
@@ -380,6 +445,7 @@ document.addEventListener("click", (event) => {
   }
   const topicButton = event.target.closest("[data-topic]");
   if (topicButton) {
+    stopReading();
     state.topic = topicButton.dataset.topic;
     state.mode = "topic";
     state.visibleCount = 20;
@@ -388,6 +454,7 @@ document.addEventListener("click", (event) => {
   }
   const filterTopic = event.target.closest("[data-filter-topic]");
   if (filterTopic) {
+    stopReading();
     const topic = filterTopic.dataset.filterTopic;
     if (state.selectedTopics.has(topic)) state.selectedTopics.delete(topic); else state.selectedTopics.add(topic);
     render();
@@ -395,6 +462,7 @@ document.addEventListener("click", (event) => {
   }
   const hoursButton = event.target.closest("[data-hours]");
   if (hoursButton) {
+    stopReading();
     state.hours = Number(hoursButton.dataset.hours);
     document.querySelectorAll("[data-hours]").forEach((button) => button.classList.toggle("active", button === hoursButton));
     renderStories();
@@ -422,6 +490,7 @@ elements.exportClose.addEventListener("click", () => elements.exportDialog.close
 elements.brandButton.addEventListener("click", () => setMode("topic"));
 elements.updateButton.addEventListener("click", updateToLatest);
 elements.weatherRefresh.addEventListener("click", () => refreshWeather(true));
+window.addEventListener("beforeunload", () => stopReading(null, false));
 
 document.querySelectorAll("[data-export]").forEach((button) => button.addEventListener("click", async () => {
   if (state.lastRenderFeed) await window.lastHour.exportFeed(button.dataset.export, state.lastRenderFeed);
@@ -447,13 +516,6 @@ window.lastHour.onProgress((progress) => {
   renderStories();
 });
 
-window.lastHour.onSpeechState((speech) => {
-  if (!speech.speaking) {
-    state.speakingStoryId = "";
-    renderStories();
-  }
-});
-
 window.lastHour.onUpdateProgress((progress) => {
   const messages = {
     starting: `Preparing version ${progress.latestVersion || ""}…`,
@@ -475,7 +537,6 @@ async function start() {
   const [snapshot, appInfo] = await Promise.all([window.lastHour.snapshot(), window.lastHour.appInfo()]);
   state.appInfo = appInfo;
   elements.appVersion.textContent = appInfo.version;
-  elements.codexStatus.textContent = appInfo.codexAvailable ? "Ready on this computer" : "Install and sign in to Codex CLI";
   state.subjectGroups = snapshot.subjectGroups;
   state.topics = snapshot.topics;
   state.feeds = snapshot.feeds;
