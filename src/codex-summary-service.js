@@ -42,14 +42,14 @@ function commandSpec(executable) {
 function candidateCodexPaths(platform = process.platform, environment = process.env, userHome = os.homedir()) {
   if (platform === "win32") {
     return [
-      environment.APPDATA && path.join(environment.APPDATA, "npm", "codex.cmd"),
-      environment.LOCALAPPDATA && path.join(environment.LOCALAPPDATA, "Programs", "OpenAI", "Codex", "bin", "codex.exe"),
-      environment.LOCALAPPDATA && path.join(environment.LOCALAPPDATA, "Microsoft", "WinGet", "Links", "codex.exe")
+      environment.APPDATA && path.win32.join(environment.APPDATA, "npm", "codex.cmd"),
+      environment.LOCALAPPDATA && path.win32.join(environment.LOCALAPPDATA, "Programs", "OpenAI", "Codex", "bin", "codex.exe"),
+      environment.LOCALAPPDATA && path.win32.join(environment.LOCALAPPDATA, "Microsoft", "WinGet", "Links", "codex.exe")
     ].filter(Boolean);
   }
   return [
-    path.join(userHome, ".npm-global", "bin", "codex"),
-    path.join(userHome, ".local", "bin", "codex"),
+    path.posix.join(userHome, ".npm-global", "bin", "codex"),
+    path.posix.join(userHome, ".local", "bin", "codex"),
     "/opt/homebrew/bin/codex",
     "/usr/local/bin/codex",
     "/usr/bin/codex"
