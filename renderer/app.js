@@ -10,7 +10,11 @@ const state = {
   loadingTopics: new Set(),
   failedTopics: new Set(),
   visibleCount: 20,
-  lastRenderFeed: null
+  lastRenderFeed: null,
+  summaries: new Map(),
+  speakingStoryId: "",
+  appInfo: null,
+  updating: false
 };
 
 const elements = Object.fromEntries([
@@ -18,8 +22,23 @@ const elements = Object.fromEntries([
   "viewTitle", "windowToggle", "signalLabel", "signalDescription", "storyCount", "topicCount",
   "lastSync", "dataMode", "storySurface", "streamSentinel", "refreshButton", "filterButton",
   "exportButton", "aboutButton", "aboutDialog", "aboutClose", "exportDialog", "exportClose",
-  "selectAll", "clearAll", "statusDot", "localStatus", "cacheSummary", "progressBar", "brandButton"
+  "selectAll", "clearAll", "statusDot", "localStatus", "cacheSummary", "progressBar", "brandButton",
+  "codexStatus", "appVersion", "updateStatus", "updateProgress", "updateButton",
+  "weatherWidget", "weatherRefresh", "huntsvilleClock", "weatherTemperature", "weatherCondition", "weatherFreshness"
 ].map((id) => [id, document.getElementById(id)]));
+
+const huntsvilleTimeFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/Chicago",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: true
+});
+const huntsvilleDateFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/Chicago",
+  month: "2-digit",
+  day: "2-digit",
+  year: "numeric"
+});
 
 function escapeHtml(value) {
   return String(value || "")
@@ -58,6 +77,32 @@ function timeAgo(value) {
 function clockTime(value) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(new Date(value));
+}
+
+function updateHuntsvilleClock() {
+  const now = new Date();
+  elements.huntsvilleClock.textContent = `${huntsvilleTimeFormatter.format(now)} ${huntsvilleDateFormatter.format(now)}`;
+  elements.huntsvilleClock.dateTime = now.toISOString();
+}
+
+async function refreshWeather(force = false) {
+  elements.weatherRefresh.classList.add("loading");
+  try {
+    const weather = await window.lastHour.currentWeather(force);
+    elements.weatherTemperature.textContent = `${weather.temperature}${weather.temperatureUnit}`;
+    elements.weatherCondition.textContent = weather.condition;
+    elements.weatherWidget.dataset.weatherTone = weather.tone;
+    elements.weatherWidget.classList.remove("updated");
+    requestAnimationFrame(() => elements.weatherWidget.classList.add("updated"));
+    const freshLabel = weather.stale ? "SAVED CONDITIONS" : "CURRENT CONDITIONS";
+    elements.weatherFreshness.textContent = `OPEN-METEO · ${freshLabel}`;
+  } catch (error) {
+    elements.weatherCondition.textContent = "Weather unavailable";
+    elements.weatherFreshness.textContent = "OPEN-METEO · RETRY WHEN ONLINE";
+    elements.weatherWidget.dataset.weatherTone = "unknown";
+  } finally {
+    elements.weatherRefresh.classList.remove("loading");
+  }
 }
 
 function activeTopics() {
@@ -103,6 +148,22 @@ function googleNewsUrl() {
   return `https://news.google.com/search?${params.toString()}`;
 }
 
+function storyExtras(story) {
+  const item = state.summaries.get(story.id);
+  const loading = item?.status === "loading";
+  const speaking = state.speakingStoryId === story.id;
+  const summary = item?.summary;
+  const error = item?.error;
+  return `
+    <div class="story-tools">
+      <button data-summary-id="${escapeHtml(story.id)}" ${loading || summary ? "disabled" : ""}>${loading ? "CODEX IS SUMMARIZING…" : summary ? "SUMMARY READY" : "SUMMARIZE WITH CODEX"}</button>
+      ${summary ? `<button data-speak-id="${escapeHtml(story.id)}">${speaking ? "RESTART READ ALOUD" : "READ ALOUD"}</button>` : ""}
+      ${speaking ? `<button data-stop-speech>STOP</button>` : ""}
+    </div>
+    ${summary ? `<div class="story-summary"><span>CODEX BRIEF${item.cached ? " · SAVED" : ""}</span><p>${escapeHtml(summary)}</p></div>` : ""}
+    ${error ? `<div class="story-summary error"><span>CODEX UNAVAILABLE</span><p>${escapeHtml(error)}</p></div>` : ""}`;
+}
+
 function renderNavigation() {
   elements.subjectNav.innerHTML = state.subjectGroups.map((group, index) => `
     <button class="subject-button ${index === state.groupIndex ? "active" : ""}" data-group="${index}">
@@ -133,7 +194,7 @@ function renderStatus() {
   const isLoading = state.loadingTopics.size > 0;
   elements.statusDot.className = `status-dot${isLoading ? " loading" : state.failedTopics.size && !cachedCount ? " error" : ""}`;
   elements.localStatus.textContent = isLoading ? `SCANNING ${state.loadingTopics.size} SIGNALS` : "LOCAL CACHE READY";
-  elements.cacheSummary.textContent = `${cachedCount} of ${state.topics.length} topics saved on this Mac${state.failedTopics.size ? ` · ${state.failedTopics.size} refresh failures` : ""}`;
+  elements.cacheSummary.textContent = `${cachedCount} of ${state.topics.length} topics saved on this computer${state.failedTopics.size ? ` · ${state.failedTopics.size} refresh failures` : ""}`;
   elements.progressBar.style.width = `${Math.min(100, (completed / Math.max(1, state.topics.length)) * 100)}%`;
   elements.refreshButton.classList.toggle("loading", isLoading);
 }
@@ -161,7 +222,7 @@ function renderStories() {
   elements.signalLabel.textContent = state.hours === 1 ? "LATEST ONE-HOUR SIGNALS" : "LATEST 24-HOUR SIGNALS";
   elements.signalDescription.textContent = failedActive.length
     ? `${failedActive.length} topic refresh${failedActive.length === 1 ? "" : "es"} failed; saved stories remain visible.`
-    : "Direct from Google News, fetched and stored on this Mac.";
+    : "Direct from Google News, fetched and stored on this computer.";
   elements.storyCount.textContent = stories.length;
   elements.topicCount.textContent = availableTopics.size;
   elements.lastSync.textContent = clockTime(sync);
@@ -183,11 +244,11 @@ function renderStories() {
     elements.storySurface.innerHTML = `
       ${state.mode === "super" ? "" : `<article class="lead-story" data-url="${escapeHtml(lead.url)}" tabindex="0" role="link">
         <div class="story-meta"><span>${escapeHtml(lead.topic)}</span><span>${escapeHtml(lead.source)} · ${timeAgo(lead.publishedAt)}</span></div>
-        <h2>${escapeHtml(lead.title)}</h2><span class="open-signal">OPEN SIGNAL ↗</span>
+        <h2>${escapeHtml(lead.title)}</h2>${storyExtras(lead)}<span class="open-signal">OPEN SIGNAL ↗</span>
       </article>`}
       <div class="story-list">${rows.map((story, index) => `<article class="story-row" data-url="${escapeHtml(story.url)}" tabindex="0" role="link">
         <span class="story-index">${String(index + (state.mode === "super" ? 1 : 2)).padStart(3, "0")}</span>
-        <div class="story-copy"><div class="story-meta"><span>${escapeHtml(story.topic)}</span><span>${escapeHtml(story.source)} · ${timeAgo(story.publishedAt)}</span></div><h3>${escapeHtml(story.title)}</h3></div>
+        <div class="story-copy"><div class="story-meta"><span>${escapeHtml(story.topic)}</span><span>${escapeHtml(story.source)} · ${timeAgo(story.publishedAt)}</span></div><h3>${escapeHtml(story.title)}</h3>${storyExtras(story)}</div>
         <span class="story-arrow">↗</span>
       </article>`).join("")}</div>`;
     elements.streamSentinel.hidden = state.mode !== "super";
@@ -204,6 +265,64 @@ function renderStories() {
     items: stories
   };
   renderStatus();
+}
+
+function storyById(id) {
+  return buildStories().find((story) => story.id === id);
+}
+
+async function summarizeStory(id) {
+  const story = storyById(id);
+  if (!story) return;
+  state.summaries.set(id, { status: "loading" });
+  renderStories();
+  try {
+    const result = await window.lastHour.summarize(story);
+    state.summaries.set(id, { status: "ready", summary: result.summary, cached: result.cached });
+  } catch (error) {
+    state.summaries.set(id, { status: "error", error: error.message || "Codex could not summarize this story." });
+  }
+  renderStories();
+}
+
+async function readStorySummary(id) {
+  const summary = state.summaries.get(id)?.summary;
+  if (!summary) return;
+  state.speakingStoryId = id;
+  renderStories();
+  try {
+    await window.lastHour.speak(summary);
+  } catch (error) {
+    state.speakingStoryId = "";
+    state.summaries.set(id, { ...state.summaries.get(id), error: error.message || "Read aloud could not start." });
+    renderStories();
+  }
+}
+
+async function updateToLatest() {
+  if (state.updating) return;
+  state.updating = true;
+  elements.updateButton.disabled = true;
+  elements.updateProgress.style.width = "3%";
+  elements.updateStatus.textContent = "Checking the latest GitHub release…";
+  try {
+    const result = await window.lastHour.installUpdate();
+    if (!result.available) {
+      elements.updateStatus.textContent = `Version ${result.currentVersion} is already the latest release.`;
+      elements.updateProgress.style.width = "100%";
+      state.updating = false;
+      elements.updateButton.disabled = false;
+      elements.updateButton.textContent = "CHECK AGAIN";
+    } else if (result.installing) {
+      elements.updateStatus.textContent = `Installing version ${result.latestVersion}; The Last Hour will restart automatically.`;
+    }
+  } catch (error) {
+    elements.updateStatus.textContent = error.message || "The update could not be installed.";
+    elements.updateProgress.style.width = "0%";
+    state.updating = false;
+    elements.updateButton.disabled = false;
+    elements.updateButton.textContent = "TRY UPDATE AGAIN";
+  }
 }
 
 function render() {
@@ -242,6 +361,11 @@ function setMode(mode) {
 }
 
 document.addEventListener("click", (event) => {
+  const summaryButton = event.target.closest("[data-summary-id]");
+  if (summaryButton) return summarizeStory(summaryButton.dataset.summaryId);
+  const speakButton = event.target.closest("[data-speak-id]");
+  if (speakButton) return readStorySummary(speakButton.dataset.speakId);
+  if (event.target.closest("[data-stop-speech]")) return window.lastHour.stopSpeaking();
   const modeButton = event.target.closest("[data-mode]");
   if (modeButton) return setMode(modeButton.dataset.mode);
   const groupButton = event.target.closest("[data-group]");
@@ -296,6 +420,8 @@ elements.aboutClose.addEventListener("click", () => elements.aboutDialog.close()
 elements.exportButton.addEventListener("click", () => elements.exportDialog.showModal());
 elements.exportClose.addEventListener("click", () => elements.exportDialog.close());
 elements.brandButton.addEventListener("click", () => setMode("topic"));
+elements.updateButton.addEventListener("click", updateToLatest);
+elements.weatherRefresh.addEventListener("click", () => refreshWeather(true));
 
 document.querySelectorAll("[data-export]").forEach((button) => button.addEventListener("click", async () => {
   if (state.lastRenderFeed) await window.lastHour.exportFeed(button.dataset.export, state.lastRenderFeed);
@@ -321,8 +447,35 @@ window.lastHour.onProgress((progress) => {
   renderStories();
 });
 
+window.lastHour.onSpeechState((speech) => {
+  if (!speech.speaking) {
+    state.speakingStoryId = "";
+    renderStories();
+  }
+});
+
+window.lastHour.onUpdateProgress((progress) => {
+  const messages = {
+    starting: `Preparing version ${progress.latestVersion || ""}…`,
+    downloading: `Downloading update${progress.percent ? ` · ${progress.percent}%` : ""}…`,
+    verifying: "Verifying the release checksum…",
+    preparing: "Preparing the new application…",
+    installing: "Installing and restarting The Last Hour…"
+  };
+  elements.updateStatus.textContent = messages[progress.phase] || "Updating The Last Hour…";
+  const percent = progress.phase === "starting"
+    ? 3
+    : Number.isFinite(progress.percent) ? progress.percent : 100;
+  elements.updateProgress.style.width = `${percent}%`;
+});
+
 async function start() {
-  const snapshot = await window.lastHour.snapshot();
+  updateHuntsvilleClock();
+  refreshWeather(false);
+  const [snapshot, appInfo] = await Promise.all([window.lastHour.snapshot(), window.lastHour.appInfo()]);
+  state.appInfo = appInfo;
+  elements.appVersion.textContent = appInfo.version;
+  elements.codexStatus.textContent = appInfo.codexAvailable ? "Ready on this computer" : "Install and sign in to Codex CLI";
   state.subjectGroups = snapshot.subjectGroups;
   state.topics = snapshot.topics;
   state.feeds = snapshot.feeds;
@@ -338,4 +491,6 @@ async function start() {
 }
 
 start();
+setInterval(updateHuntsvilleClock, 1000);
+setInterval(() => refreshWeather(false), 15 * 60 * 1000);
 setInterval(() => refreshCurrent(false), 15 * 60 * 1000);

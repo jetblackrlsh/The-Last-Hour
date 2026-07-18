@@ -50,6 +50,26 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--gold); outline-
 .subject-button:hover, .subject-button.active { color: var(--white); background: rgba(201,185,255,.07); }
 .subject-button.active span { color: var(--gold); }
 
+.weather-widget { flex: 0 0 auto; padding: 15px 20px 16px; border-top: 1px solid var(--line); background: linear-gradient(135deg, rgba(125,76,244,.08), rgba(5,4,11,.25)); }
+.weather-location { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.weather-location span, .weather-widget small { color: var(--muted); font: 6px ui-monospace, monospace; letter-spacing: .15em; }
+.weather-location button { width: 22px; height: 22px; padding: 0; border: 1px solid var(--line); border-radius: 50%; color: var(--lavender); background: transparent; cursor: pointer; font-size: 11px; }
+.weather-location button:hover { color: var(--white); border-color: rgba(201,185,255,.4); background: rgba(125,76,244,.2); }
+.weather-location button.loading { animation: spin .8s linear infinite; }
+.weather-widget time { display: block; margin-top: 8px; color: var(--white); font: 11px ui-monospace, monospace; letter-spacing: .035em; text-shadow: 0 0 12px rgba(255,255,255,.2); }
+.weather-reading { display: grid; grid-template-columns: 22px auto 1fr; align-items: center; gap: 8px; margin-top: 10px; }
+.weather-reading i { position: relative; width: 17px; height: 17px; border: 1px solid currentColor; border-radius: 50%; color: var(--gold); box-shadow: 0 0 13px currentColor; transition: color .3s ease, border-radius .3s ease; }
+.weather-reading strong { color: var(--white); font: 16px ui-monospace, monospace; font-weight: 500; }
+.weather-reading span { min-width: 0; overflow: hidden; color: var(--lavender); font-size: 8px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.weather-widget small { display: block; margin-top: 9px; font-size: 5px; }
+.weather-widget[data-weather-tone="cloud"] .weather-reading i, .weather-widget[data-weather-tone="fog"] .weather-reading i { color: var(--lavender); border-radius: 60% 45% 55% 40%; }
+.weather-widget[data-weather-tone="rain"] .weather-reading i { color: var(--blue); border-radius: 50% 50% 62% 38%; transform: rotate(45deg); }
+.weather-widget[data-weather-tone="storm"] .weather-reading i { color: #a875ff; border-radius: 3px; transform: rotate(45deg); }
+.weather-widget[data-weather-tone="snow"] .weather-reading i { color: var(--white); box-shadow: 0 0 16px rgba(255,255,255,.7); }
+.weather-widget[data-weather-tone="ice"] .weather-reading i { color: #88e6ff; }
+.weather-widget[data-weather-tone="unknown"] .weather-reading i, .weather-widget[data-weather-tone="loading"] .weather-reading i { color: var(--muted); box-shadow: none; }
+.weather-widget.updated .weather-reading { animation: weatherIn .35s ease both; }
+
 .sidebar-status { margin-top: auto; padding: 18px 20px 22px; border-top: 1px solid var(--line); background: rgba(11,7,21,.5); }
 .sidebar-status > div:first-child { display: flex; align-items: center; gap: 8px; }
 .sidebar-status strong { color: var(--lavender); font: 7px ui-monospace, monospace; letter-spacing: .13em; }
@@ -110,6 +130,15 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--gold); outline-
 .story-meta span:first-child { color: var(--gold); }
 .lead-story h2 { position: relative; z-index: 1; max-width: 760px; margin: 44px 0 0; font-size: clamp(26px, 3.2vw, 45px); font-weight: 500; line-height: 1.07; letter-spacing: -.03em; }
 .open-signal { position: relative; z-index: 1; margin-top: 25px; color: var(--lavender); font-size: 8px; letter-spacing: .13em; }
+.story-tools { position: relative; z-index: 2; display: flex; flex-wrap: wrap; gap: 7px; margin-top: 16px; }
+.story-tools button { padding: 7px 10px; border: 1px solid rgba(125,76,244,.5); color: var(--lavender); background: rgba(8,6,18,.78); cursor: pointer; font: 7px ui-monospace, monospace; letter-spacing: .1em; }
+.story-tools button:hover { color: var(--white); border-color: rgba(201,185,255,.55); background: rgba(125,76,244,.24); }
+.story-tools button:disabled { cursor: progress; opacity: .65; }
+.story-summary { position: relative; z-index: 2; margin-top: 15px; padding: 14px 16px; border-left: 2px solid var(--gold); background: rgba(5,4,11,.7); cursor: default; }
+.story-summary > span { display: block; color: var(--gold); font: 7px ui-monospace, monospace; letter-spacing: .14em; }
+.story-summary p { margin: 8px 0 0; color: #ddd8ed; font-size: 11px; line-height: 1.6; white-space: pre-wrap; }
+.story-summary.error { border-left-color: #ff728e; }
+.story-summary.error > span { color: #ff9bad; }
 .story-list { border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
 .story-row { position: relative; display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 18px; min-height: 112px; padding: 20px 24px 20px 0; border-bottom: 1px solid var(--line); background: rgba(11,7,21,.42); cursor: pointer; transition: .18s ease; }
 .story-row:hover { background: rgba(125,76,244,.09); }
@@ -136,11 +165,23 @@ dialog dt { color: var(--muted); font: 7px ui-monospace, monospace; letter-spaci
 dialog dd { margin: 0; color: var(--lavender); font-size: 10px; }
 .export-actions { display: flex; gap: 8px; margin-top: 26px; }
 .export-actions button { flex: 1; min-height: 48px; margin: 0; background: rgba(125,76,244,.13); }
+.update-panel { margin-top: 28px; padding: 18px; border: 1px solid var(--line); background: rgba(5,4,11,.5); }
+.update-panel > div:first-child { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.update-panel span { color: var(--gold); font: 7px ui-monospace, monospace; letter-spacing: .15em; }
+.update-panel strong { color: var(--muted); font: 7px ui-monospace, monospace; letter-spacing: .12em; }
+.update-panel strong b { color: var(--white); font-weight: 500; }
+.update-panel p { margin: 12px 0; font-size: 10px; }
+.update-progress { height: 2px; overflow: hidden; background: rgba(201,185,255,.1); }
+.update-progress i { display: block; width: 0; height: 100%; background: linear-gradient(90deg, var(--violet), var(--blue), var(--gold)); transition: width .25s ease; }
+.update-panel button { width: 100%; min-height: 42px; margin-top: 14px; border: 1px solid rgba(125,76,244,.55); color: var(--white); background: rgba(125,76,244,.2); cursor: pointer; font-size: 8px; letter-spacing: .12em; }
+.update-panel button:hover { background: rgba(125,76,244,.32); }
+.update-panel button:disabled { cursor: progress; opacity: .65; }
 
 @keyframes pulse { 50% { opacity: .45; transform: scale(.8); } }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes drawerIn { from { opacity: 0; transform: translateY(-8px); } }
 @keyframes contentIn { from { opacity: 0; transform: translateY(8px); } }
+@keyframes weatherIn { from { opacity: .3; transform: translateY(3px); } }
 
 @media (max-width: 1120px) {
   :root { --sidebar: 222px; }
