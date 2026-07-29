@@ -1,16 +1,9 @@
-name: Build Windows installer
+name: Build Windows installer for release
 
 on:
-  workflow_dispatch:
-    inputs:
-      release_tag:
-        description: Existing release tag to receive the Windows files (optional)
-        required: false
-        type: string
-  pull_request:
-  push:
-    branches:
-      - main
+  release:
+    types:
+      - published
 
 permissions:
   contents: write
@@ -38,19 +31,19 @@ jobs:
       - name: Build Windows installer
         run: npm run dist:win
 
-      - name: Upload Windows build artifact
+      - name: Attach Windows files to the published release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload $env:RELEASE_TAG release/*.exe release/*.zip --clobber --repo $env:GITHUB_REPOSITORY
+
+      - name: Keep a temporary Actions copy
         uses: actions/upload-artifact@v4
         with:
-          name: The-Last-Hour-Windows-x64
+          name: The-Last-Hour-Windows-x64-${{ github.event.release.tag_name }}
           path: |
             release/*.exe
             release/*.zip
           if-no-files-found: error
-
-      - name: Attach Windows files to an existing release
-        if: github.event_name == 'workflow_dispatch' && inputs.release_tag != ''
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
-        run: gh release upload $env:RELEASE_TAG release/*.exe release/*.zip --clobber --repo $env:GITHUB_REPOSITORY
+          retention-days: 3
