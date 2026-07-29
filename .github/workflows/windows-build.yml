@@ -4,17 +4,42 @@ on:
   release:
     types:
       - published
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/windows-build.yml
 
 permissions:
+  actions: write
   contents: write
 
 jobs:
+  cleanup-old-artifacts:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Keep only the newest legacy installer artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=The-Last-Hour-Windows-x64&per_page=100" \
+            --jq '.artifacts | sort_by(.created_at) | reverse | .[1:] | .[].id' |
+          while read -r artifact_id; do
+            if [ -n "$artifact_id" ]; then
+              gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id"
+            fi
+          done
+
   build-windows:
+    if: github.event_name == 'release'
     runs-on: windows-latest
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
